@@ -4,7 +4,7 @@ import TwitchModule from "../../twitch/index.js";
 import { SlashCommand } from "../../discord/slash-commands/index.js";
 import { getChoices_twitchChannel } from "./index.js";
 
-import { ApplicationIntegrationType, EmbedBuilder, InteractionContextType } from "discord.js";
+import { EmbedBuilder } from "discord.js";
 import { Request } from "twitch.ts";
 
 export default () => {
@@ -15,15 +15,6 @@ export default () => {
 	.setName("twitch-channel-info")
 	.setDescription(`Sends info about specified twitch channel`)
 	.setDescriptionLocalization("ru", `Отправляет информацию об указанном Twitch-канале`)
-	.setContexts([
-		InteractionContextType.BotDM,
-		InteractionContextType.Guild,
-		InteractionContextType.PrivateChannel
-	])
-	.setIntegrationTypes([
-		ApplicationIntegrationType.GuildInstall,
-		ApplicationIntegrationType.UserInstall
-	])
 	.setAutocomplete(async(interaction) => {
 		const focused = interaction.options.getFocused();
 		const choices = await getChoices_twitchChannel(focused);
