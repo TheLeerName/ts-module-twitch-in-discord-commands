@@ -17,7 +17,6 @@ export default () => {
 	.setDescriptionLocalization("ru", `Отправляет информацию об указанном Twitch-канале`)
 	.setAutocomplete(async(interaction) => {
 		const focused = interaction.options.getFocused();
-		console.log(focused);
 		const choices = await getChoices_twitchChannel(focused);
 		await interaction.respond(choices);
 	}).setChatInput(async(interaction) => {
