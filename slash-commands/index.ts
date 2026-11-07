@@ -2,7 +2,7 @@ import Module from "../index.js";
 import TwitchModule from "../../twitch/index.js";
 
 import { type ApplicationCommandOptionChoiceData, Collection } from "discord.js";
-import { Request } from "twitch.ts";
+import * as Twitch from "twitch.ts";
 
 export type Choices = {
 	array: ApplicationCommandOptionChoiceData<string>[];
@@ -27,17 +27,19 @@ export async function getChoices_twitchChannel(focused: string) {
 		while (choices.array.length > 0) choices.array.pop();
 
 		if (focused.length > 0) {
-			const response = await TwitchModule.runRequestWithTokenRefreshing(Request.SearchChannels, TwitchModule.authorization, focused, undefined, 5);
-			if (!response.ok) {
+			const result = await TwitchModule.authorization.request.withRefreshing(Twitch.Helix.SearchChannels.axiosRequest, {
+				query: focused, first: 5,
+			});
+			if (!result.ok) {
 				Module.log.error("Getting twitch channel results failed", {args: {
 					name: "SearchChannels",
-					status: response.status,
-					message: response.message
+					status: result.status,
+					message: result.message
 				}});
 				choices_twitchChannel.delete(focused);
 				return choices.array;
 			}
-			for (const entry of response.data) choices.array.push({name: entry.display_name, value: entry.id});
+			for (const entry of result.data) choices.array.push({name: entry.display_name, value: entry.id});
 		}
 
 		choices.lastModifiedTimestamp = dateNow;

@@ -5,7 +5,7 @@ import { SlashCommand } from "../../discord/slash-commands/index.js";
 import { getChoices_twitchChannel } from "./index.js";
 
 import { EmbedBuilder } from "discord.js";
-import { Request } from "twitch.ts";
+import * as Twitch from "twitch.ts";
 
 export default () => {
 	const c = new SlashCommand()
@@ -17,6 +17,7 @@ export default () => {
 	.setDescriptionLocalization("ru", `Отправляет информацию об указанном Twitch-канале`)
 	.setAutocomplete(async(interaction) => {
 		const focused = interaction.options.getFocused();
+		console.log(focused);
 		const choices = await getChoices_twitchChannel(focused);
 		await interaction.respond(choices);
 	}).setChatInput(async(interaction) => {
@@ -37,12 +38,14 @@ export default () => {
 			if (query.length < 1)
 				throw new Error("Параметр query не указан");
 
-			const requestGetUsers = await TwitchModule.runRequestWithTokenRefreshing(Request.GetUsers, TwitchModule.authorization, {id: query});
-			if (!requestGetUsers.ok)
-				throw new Error(`Ошибка ${requestGetUsers.status} - ${requestGetUsers.message}`);
-			if (requestGetUsers.data.length < 1)
+			const resultGetUsers = await TwitchModule.authorization.request.withRefreshing(Twitch.Helix.GetUsers.axiosRequest, {
+				id: query,
+			});
+			if (!resultGetUsers.ok)
+				throw new Error(`Ошибка ${resultGetUsers.status} - ${resultGetUsers.message}`);
+			if (resultGetUsers.data.length < 1)
 				throw new Error("Указанный Twitch-канал не существует или был забанен");
-			const user = requestGetUsers.data[0];
+			const user = resultGetUsers.data[0];
 
 			const createdAtTimestamp = Math.floor(new Date(user.created_at).getTime() / 1000);
 			const msg = {embeds: [new EmbedBuilder()
@@ -76,11 +79,13 @@ export default () => {
 			if (user.description.length > 0) msg.embeds[0].setDescription(user.description);
 			if (user.offline_image_url.length > 0) msg.embeds[0].setImage(user.offline_image_url);
 
-			const requestGetStreams = await TwitchModule.runRequestWithTokenRefreshing(Request.GetStreams, TwitchModule.authorization, user.id, undefined, undefined, "live", undefined, 1);
-			if (!requestGetStreams.ok)
-				throw new Error(`Ошибка ${requestGetStreams.status} - ${requestGetStreams.message}`);
-			if (requestGetStreams.data.length > 0) {
-				const stream = requestGetStreams.data[0];
+			const resultGetStreams = await TwitchModule.authorization.request.withRefreshing(Twitch.Helix.GetStreams.axiosRequest, {
+				user_id: user.id, type: "live", first: 1,
+			});
+			if (!resultGetStreams.ok)
+				throw new Error(`Ошибка ${resultGetStreams.status} - ${resultGetStreams.message}`);
+			if (resultGetStreams.data.length > 0) {
+				const stream = resultGetStreams.data[0];
 				const startedAtTimestamp = Math.floor(new Date(stream.started_at).getTime() / 1000)
 				msg.embeds[0].addFields({
 					name: "🔴 Текущий стрим",
@@ -123,6 +128,8 @@ export default () => {
 		.setDescription("Twitch channel ID")
 		.setDescriptionLocalization("ru", "ID Twitch-канала")
 		.setRequired(true)
+		.setMinLength(4)
+		.setMaxLength(25)
 		.setAutocomplete(true)
 	);
 	return c;
